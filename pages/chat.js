@@ -1,11 +1,32 @@
 import { Box, Text, TextField, Image, Button } from '@skynexui/components';
 import React from 'react';
 import appConfig from '../config.json';
+import { createClient } from '@supabase/supabase-js';
+
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlhdCI6MTY0MzMwMDM2OCwiZXhwIjoxOTU4ODc2MzY4fQ.9SnFijcPK8ye6flGvRH3LFVPkmXgmpy4SPprKo0Lm88';
+
+const SUPABASE_URL = 'https://rnftydneqiniyavziwcx.supabase.co';
+
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 
 export default function ChatPage() {
     // Sua lógica vai aqui
     const [mensagem, setMensagem] = React.useState('');
     const [listaDeMensagens, setListaDeMensagens] = React.useState([]);
+
+    //useEffect existe para lidar com tudo que foge do fluxo "padrão" da sua aplicação, ou seja, a execução extra
+    // por padrão, o useEffect vai rodar sempre que a página carrega, mas caso eu queria que, em decorrencia de um estado ele rode de novo, a gnt pega um array (passado no final) para ser observado para mudar novamente.
+    React.useEffect(() => {
+        supabaseClient
+            .from('mensagens')
+            .select('*')
+            .order('id', {ascending: false})
+            .then(({data}) => {
+                console.log('Dados da consulta', data);
+                setListaDeMensagens(data);
+            });
+    }, []);
 
 
     /*  Lista do que precisa ser feito:
@@ -22,15 +43,24 @@ export default function ChatPage() {
 
     function handleNovaMensagem(novaMensagem) {
         const mensagem = {
-            id: listaDeMensagens.length + 1,
             de: 'vanessametonini',
             texto: novaMensagem,
-        }
+        };
 
-        setListaDeMensagens([
-            mensagem,
-            ...listaDeMensagens,
-        ]);
+        supabaseClient
+            .from('mensagens')
+            .insert([
+                mensagem
+            ])
+            .then(({data})=> {
+                console.log('Criando mensagem: ', data);
+                setListaDeMensagens([
+                    data[0],
+                    ...listaDeMensagens,
+                ]);
+            })
+
+
         setMensagem('');
     }
 
@@ -186,7 +216,7 @@ function MessageList(props) {
                                     display: 'inline-block',
                                     marginRight: '8px',
                                 }}
-                                src={`https://github.com/vanessametonini.png`}
+                                src={`https://github.com/${mensagem.de}.png`}
                             />
                             <Text tag="strong">
                                 {mensagem.de}
